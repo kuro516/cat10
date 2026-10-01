@@ -51,10 +51,12 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            /* 100vh から 100dvh (スマホブラウザのアドレスバー考慮) に変更 */
+            min-height: 100dvh;
             margin: 0;
             overflow: hidden;
-            user-select: none;
+            /* スマホでの誤操作（ダブルタップ拡大や縦スクロール）を防止 */
+            touch-action: none;
         }
 
         #game-header {
