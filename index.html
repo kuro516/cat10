@@ -1,0 +1,664 @@
+
+
+
+
+
+
+
+
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <title>うさぎロケット - リズムゲーム</title>
+
+  <!-- 基本説明 -->
+  <meta name="description" content="最高得点を目指せ！D/F/J/Kキーでプレイするリズムゲーム。">
+
+  <!-- Open Graph 設定 (Slackがメインで読み込むタグ) -->
+  <meta property="og:site_name" content="うさぎロケット - リズムゲーム">
+  <meta property="og:title" content="うさぎロケット - リズムゲーム">
+  <meta property="og:description" content="最高得点を目指せ！D/F/J/Kキーでプレイするリズムゲーム。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kuro516.github.io/cat10/">
+  
+  <!-- 画像の設定（絶対パスで指定） -->
+  <meta property="og:image" content="https://kuro516.github.io/cat10/ogp-image.png">
+  <!-- 画像サイズを明示しておくとSlackが即座に認識しやすくなります -->
+  <meta property="og:image:width" content="1536">
+  <meta property="og:image:height" content="1024">
+
+  <!-- Twitter Card (SlackがOGPの予備として読み込む場合あり) -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="うさぎロケット - リズムゲーム">
+  <meta name="twitter:description" content="最高得点を目指せ！D/F/J/Kキーでプレイするリズムゲーム。">
+  <meta name="twitter:image" content="https://kuro516.github.io/cat10/ogp-image.png">
+</head>
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>うさぎロケット - ガチ音ゲー仕様版</title>
+    <style>
+        body {
+            background-color: #1a1a24;
+            color: #fff;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        #score-board {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00f6ff;
+            text-shadow: 0 0 10px rgba(0, 246, 255, 0.5);
+        }
+
+        #game-container {
+            position: relative;
+            width: 320px;
+            height: 500px;
+            background-color: #2a2a38;
+            border: 2px solid #555;
+            display: flex;
+            overflow: hidden;
+            box-shadow: 0 0 25px rgba(0, 246, 255, 0.2);
+            border-radius: 8px;
+        }
+
+        /* 4つのレーン */
+        .lane {
+            flex: 1;
+            border-right: 1px dashed #444;
+            position: relative;
+            transition: background-color 0.05s;
+        }
+        .lane:last-child {
+            border-right: none;
+        }
+
+        /* キーを押した時にレーンが光るスタイル */
+        .lane.active {
+            background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(0,246,255,0.3) 100%);
+        }
+
+        #judge-line {
+            position: absolute;
+            bottom: 50px;
+            width: 100%;
+            height: 4px;
+            background-color: #ff2a6d;
+            box-shadow: 0 0 12px #ff2a6d, 0 0 20px #ff2a6d;
+            z-index: 10;
+        }
+
+        /* ノーツ */
+        .note {
+            position: absolute;
+            width: 70px;
+            height: 20px;
+            background: linear-gradient(180deg, #00f6ff, #0088ff);
+            border-radius: 4px;
+            left: 5px;
+            box-shadow: 0 0 8px #00f6ff;
+            z-index: 5;
+        }
+
+        #combo-container {
+            position: absolute;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 25;
+            opacity: 0;
+            transition: opacity 0.1s ease-out, transform 0.08s ease-out;
+        }
+
+        #combo-count {
+            font-size: 42px;
+            font-weight: 900;
+            color: #ffe600;
+            text-shadow: 0 0 15px rgba(255, 230, 0, 0.8);
+            line-height: 1;
+        }
+
+        #combo-label {
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #fff;
+        }
+
+        #judge-text {
+            position: absolute;
+            top: 52%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 26px;
+            font-weight: 900;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            pointer-events: none;
+            z-index: 30;
+            opacity: 0;
+            transition: opacity 0.1s ease-out, transform 0.1s ease-out;
+        }
+
+        .judge-perfect { color: #ffe600; text-shadow: 0 0 12px #ffe600; }
+        .judge-great   { color: #00ffcc; text-shadow: 0 0 12px #00ffcc; }
+        .judge-good    { color: #ff00aa; text-shadow: 0 0 12px #ff00aa; }
+        .judge-miss    { color: #888888; text-shadow: 0 0 6px #888888; }
+
+        .hit-effect {
+            position: absolute;
+            width: 80px;
+            height: 40px;
+            left: 0px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(0,246,255,0.8) 50%, rgba(0,246,255,0) 100%);
+            box-shadow: 0 0 20px #00f6ff;
+            pointer-events: none;
+            z-index: 15;
+            animation: pop-flash 0.25s ease-out forwards;
+        }
+
+        @keyframes pop-flash {
+            0% { transform: scale(0.5); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.9; }
+            100% { transform: scale(1.8); opacity: 0; }
+        }
+
+        #key-guides {
+            display: flex;
+            width: 320px;
+            margin-top: 10px;
+        }
+        .key-guide {
+            flex: 1;
+            text-align: center;
+            background: #333;
+            padding: 8px 0;
+            margin: 0 2px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #00f6ff;
+            transition: background 0.05s, color 0.05s;
+        }
+        .key-guide.active {
+            background: #00f6ff;
+            color: #111;
+            box-shadow: 0 0 10px #00f6ff;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.88);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 40;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .result-rank {
+            font-size: 72px;
+            font-weight: 900;
+            color: #ffe600;
+            text-shadow: 0 0 20px #ffe600;
+            margin: 5px 0;
+            line-height: 1;
+        }
+
+        #full-combo-text {
+            font-size: 18px;
+            font-weight: 900;
+            color: #ffea00;
+            text-shadow: 0 0 10px #ffea00;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+
+        .result-stats {
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.8;
+            background: rgba(255,255,255,0.1);
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            width: 80%;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            background-color: #ff2a6d;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background-color: #ff5588;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="bgm" src="usagi_rocket.mp3" preload="auto"></audio>
+
+    <div id="game-header">
+        <h1>うさぎロケット</h1>
+        <div id="score-board">SCORE: <span id="score">0</span></div>
+    </div>
+
+    <div id="game-container">
+        <div class="lane" id="lane-0"></div>
+        <div class="lane" id="lane-1"></div>
+        <div class="lane" id="lane-2"></div>
+        <div class="lane" id="lane-3"></div>
+        <div id="judge-line"></div>
+        
+        <!-- コンボ表示 -->
+        <div id="combo-container">
+            <div id="combo-count">0</div>
+            <div id="combo-label">COMBO</div>
+        </div>
+
+        <!-- 判定テキスト -->
+        <div id="judge-text">PERFECT</div>
+
+        <!-- スタート画面 -->
+        <div id="start-overlay" class="overlay">
+            <h2>音ゲーモード</h2>
+            <p style="font-size: 13px; color: #ccc; margin-bottom: 20px;">D / F / J / K キーでノーツを叩こう！<br>（開始5秒間はノーツ準備時間です）</p>
+            <button onclick="startGame()">START</button>
+        </div>
+
+        <!-- リザルト（結果表示）画面 -->
+        <div id="result-overlay" class="overlay" style="display: none;">
+            <h2 style="margin: 0; font-size: 20px;">CLEAR!</h2>
+            <div id="result-rank" class="result-rank">SS</div>
+            <div id="full-combo-text" style="display: none;">★ FULL COMBO ★</div>
+            <div class="result-stats">
+                <div>SCORE: <b id="res-score" style="color:#00f6ff;">0</b></div>
+                <div>MAX COMBO: <b id="res-maxcombo" style="color:#ffe600;">0</b></div>
+                <hr style="border: 0.5px solid #444; margin: 6px 0;">
+                <div>PERFECT: <span id="res-perfect">0</span></div>
+                <div>GREAT: <span id="res-great">0</span></div>
+                <div>GOOD: <span id="res-good">0</span></div>
+                <div>MISS: <span id="res-miss">0</span></div>
+            </div>
+            <button onclick="startGame()">RETRY</button>
+        </div>
+    </div>
+
+    <div id="key-guides">
+        <div class="key-guide" id="guide-0">D</div>
+        <div class="key-guide" id="guide-1">F</div>
+        <div class="key-guide" id="guide-2">J</div>
+        <div class="key-guide" id="guide-3">K</div>
+    </div>
+
+    <script>
+        const LANE_KEYS = ['KeyD', 'KeyF', 'KeyJ', 'KeyK'];
+        const JUDGE_LINE_Y = 450;
+        const NOTE_FALL_TIME = 2.5;
+
+        let score = 0;
+        let combo = 0;
+        let maxCombo = 0;
+        let startTime = 0;
+        let isPlaying = false;
+        let chartData = [];
+        let activeNotes = [];
+        let judgeTimer = null;
+
+        // 判定カウント用
+        let countPerfect = 0;
+        let countGreat = 0;
+        let countGood = 0;
+        let countMiss = 0;
+
+        function generateChart() {
+            const chart = [];
+            const bpm = 135;
+            const beatDuration = 60 / bpm;
+            
+            // 開始オフセット（最初の5秒間はノーツを降らせない）
+            const START_OFFSET = 5;
+
+            const sections = [
+                { start: 0,   end: 30,  intervalBeats: 3 },
+                { start: 30,  end: 90,  intervalBeats: 2 },
+                { start: 90,  end: 140, intervalBeats: 1 },
+                { start: 140, end: 190, intervalBeats: 2 },
+                { start: 190, end: 240, intervalBeats: 1 },
+                { start: 240, end: 270, intervalBeats: 2 },
+                { start: 270, end: 300, intervalBeats: 1 },
+                { start: 300, end: 314, intervalBeats: 2 }
+            ];
+
+            let currentLane = 0;
+
+            sections.forEach(sec => {
+                let currentTime = sec.start + START_OFFSET;
+                const interval = beatDuration * sec.intervalBeats;
+
+                while (currentTime < sec.end + START_OFFSET) {
+                    currentLane = (currentLane + Math.floor(Math.random() * 3) + 1) % 4;
+
+                    chart.push({
+                        time: parseFloat(currentTime.toFixed(2)),
+                        lane: currentLane,
+                        spawned: false,
+                        hit: false
+                    });
+
+                    currentTime += interval;
+                }
+            });
+
+            return chart;
+        }
+
+        function startGame() {
+            document.getElementById('start-overlay').style.display = 'none';
+            document.getElementById('result-overlay').style.display = 'none';
+            
+            // --- リトライ時・スタート時のノーツ＆エフェクト完全クリア ---
+            document.querySelectorAll('.note').forEach(el => el.remove());
+            document.querySelectorAll('.hit-effect').forEach(el => el.remove());
+            
+            // 値の初期化
+            score = 0;
+            combo = 0;
+            maxCombo = 0;
+            countPerfect = 0;
+            countGreat = 0;
+            countGood = 0;
+            countMiss = 0;
+
+            document.getElementById('score').innerText = score;
+            updateComboUI();
+
+            chartData = generateChart();
+            activeNotes = [];
+
+            const bgm = document.getElementById('bgm');
+            bgm.currentTime = 0;
+            
+            bgm.onended = () => {
+                endGame();
+            };
+
+            bgm.play().then(() => {
+                startTime = performance.now();
+                isPlaying = true;
+                requestAnimationFrame(updateGame);
+            }).catch(err => {
+                console.error("再生失敗:", err);
+                startTime = performance.now();
+                isPlaying = true;
+                requestAnimationFrame(updateGame);
+            });
+        }
+
+        function updateGame(now) {
+            if (!isPlaying) return;
+
+            const elapsedTime = (now - startTime) / 1000;
+
+            // ノーツ出現チェック
+            chartData.forEach(note => {
+                if (!note.spawned && elapsedTime >= note.time - NOTE_FALL_TIME) {
+                    createNoteElement(note);
+                    note.spawned = true;
+                }
+            });
+
+            // ノーツ移動＆MISS判定
+            for (let i = activeNotes.length - 1; i >= 0; i--) {
+                const noteObj = activeNotes[i];
+                const noteTime = noteObj.data.time;
+                const progress = 1 - (noteTime - elapsedTime) / NOTE_FALL_TIME;
+                const currentY = progress * JUDGE_LINE_Y;
+
+                noteObj.el.style.top = `${currentY}px`;
+
+                if (progress > 1.25 && !noteObj.data.hit) {
+                    // MISS 判定
+                    countMiss++;
+                    combo = 0; // コンボリセット
+                    updateComboUI();
+                    showJudgement('MISS', 'judge-miss');
+                    
+                    noteObj.el.remove();
+                    activeNotes.splice(i, 1);
+                }
+            }
+
+            // 曲の時間が過ぎて全ノーツを処理しきったらゲーム終了
+            if (elapsedTime > 322 && activeNotes.length === 0) {
+                endGame();
+                return;
+            }
+
+            requestAnimationFrame(updateGame);
+        }
+
+        function createNoteElement(note) {
+            const laneEl = document.getElementById(`lane-${note.lane}`);
+            const noteEl = document.createElement('div');
+            noteEl.className = 'note';
+            noteEl.style.top = '0px';
+            laneEl.appendChild(noteEl);
+
+            activeNotes.push({
+                data: note,
+                el: noteEl
+            });
+        }
+
+        function createHitEffect(laneIndex) {
+            const laneEl = document.getElementById(`lane-${laneIndex}`);
+            const effect = document.createElement('div');
+            effect.className = 'hit-effect';
+            effect.style.top = `${JUDGE_LINE_Y - 18}px`;
+            laneEl.appendChild(effect);
+
+            setTimeout(() => { effect.remove(); }, 250);
+        }
+
+        function showJudgement(text, className) {
+            const judgeEl = document.getElementById('judge-text');
+            judgeEl.innerText = text;
+            judgeEl.className = className;
+            
+            judgeEl.style.opacity = '1';
+            judgeEl.style.transform = 'translate(-50%, -50%) scale(1.3)';
+
+            clearTimeout(judgeTimer);
+            judgeTimer = setTimeout(() => {
+                judgeEl.style.opacity = '0';
+                judgeEl.style.transform = 'translate(-50%, -50%) scale(1.0)';
+            }, 300);
+        }
+
+        function updateComboUI() {
+            const comboContainer = document.getElementById('combo-container');
+            const comboCountEl = document.getElementById('combo-count');
+
+            if (combo >= 2) {
+                comboCountEl.innerText = combo;
+                comboContainer.style.opacity = '1';
+                comboContainer.style.transform = 'translate(-50%, -50%) scale(1.15)';
+                setTimeout(() => {
+                    comboContainer.style.transform = 'translate(-50%, -50%) scale(1.0)';
+                }, 80);
+            } else {
+                comboContainer.style.opacity = '0';
+            }
+
+            if (combo > maxCombo) {
+                maxCombo = combo;
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+
+            const laneIndex = LANE_KEYS.indexOf(e.code);
+            if (laneIndex === -1) return;
+
+            // レーンとキーガイドの発光アニメーション
+            const laneEl = document.getElementById(`lane-${laneIndex}`);
+            const guideEl = document.getElementById(`guide-${laneIndex}`);
+            laneEl.classList.add('active');
+            guideEl.classList.add('active');
+
+            if (!isPlaying) return;
+
+            // 判定計算
+            const elapsedTime = (performance.now() - startTime) / 1000;
+            const targetNoteIndex = activeNotes.findIndex(
+                n => n.data.lane === laneIndex && !n.data.hit
+            );
+
+            if (targetNoteIndex !== -1) {
+                const targetNote = activeNotes[targetNoteIndex];
+                const timeDiff = Math.abs(elapsedTime - targetNote.data.time);
+
+                let baseScore = 0;
+
+                if (timeDiff <= 0.08) {
+                    baseScore = 300;
+                    countPerfect++;
+                    combo++;
+                    showJudgement('PERFECT!', 'judge-perfect');
+                    createHitEffect(laneIndex);
+                    hitSuccess(targetNote, targetNoteIndex);
+                } else if (timeDiff <= 0.20) {
+                    baseScore = 200;
+                    countGreat++;
+                    combo++;
+                    showJudgement('GREAT', 'judge-great');
+                    createHitEffect(laneIndex);
+                    hitSuccess(targetNote, targetNoteIndex);
+                } else if (timeDiff <= 0.38) {
+                    baseScore = 100;
+                    countGood++;
+                    combo++;
+                    showJudgement('GOOD', 'judge-good');
+                    createHitEffect(laneIndex);
+                    hitSuccess(targetNote, targetNoteIndex);
+                }
+
+                if (baseScore > 0) {
+                    // コンボボーナス加算
+                    score += baseScore + Math.floor(combo * 10);
+                    document.getElementById('score').innerText = score.toLocaleString();
+                    updateComboUI();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const laneIndex = LANE_KEYS.indexOf(e.code);
+            if (laneIndex === -1) return;
+
+            const laneEl = document.getElementById(`lane-${laneIndex}`);
+            const guideEl = document.getElementById(`guide-${laneIndex}`);
+            if (laneEl) laneEl.classList.remove('active');
+            if (guideEl) guideEl.classList.remove('active');
+        });
+
+        function hitSuccess(noteObj, index) {
+            noteObj.data.hit = true;
+            noteObj.el.remove();
+            activeNotes.splice(index, 1);
+        }
+
+        function endGame() {
+            isPlaying = false;
+
+            const bgm = document.getElementById('bgm');
+            bgm.pause();
+
+            // ランク判定（倍率調整済みスコア）
+            let rank = 'C';
+            if (score >= 500000) rank = 'SS';
+            else if (score >= 360000) rank = 'S';
+            else if (score >= 240000) rank = 'A';
+            else if (score >= 140000) rank = 'B';
+
+            // 結果画面に数値をセット
+            document.getElementById('res-score').innerText = score.toLocaleString();
+            document.getElementById('res-maxcombo').innerText = maxCombo;
+            document.getElementById('res-perfect').innerText = countPerfect;
+            document.getElementById('res-great').innerText = countGreat;
+            document.getElementById('res-good').innerText = countGood;
+            document.getElementById('res-miss').innerText = countMiss;
+            
+            const rankEl = document.getElementById('result-rank');
+            rankEl.innerText = rank;
+
+            // ランクに応じたスタイル変更
+            if (rank === 'SS') {
+                rankEl.style.color = '#ffffff';
+                rankEl.style.textShadow = '0 0 20px #ffe600, 0 0 40px #ff00aa';
+            } else if (rank === 'S') {
+                rankEl.style.color = '#ffe600';
+                rankEl.style.textShadow = '0 0 25px #ffe600';
+            } else if (rank === 'A') {
+                rankEl.style.color = '#ff2a6d';
+                rankEl.style.textShadow = '0 0 20px #ff2a6d';
+            } else if (rank === 'B') {
+                rankEl.style.color = '#00f6ff';
+                rankEl.style.textShadow = '0 0 15px #00f6ff';
+            } else {
+                rankEl.style.color = '#888888';
+                rankEl.style.textShadow = 'none';
+            }
+
+            // FULL COMBO 判定（MISSが0個の場合）
+            const fcText = document.getElementById('full-combo-text');
+            if (countMiss === 0 && (countPerfect + countGreat + countGood) > 0) {
+                fcText.style.display = 'block';
+            } else {
+                fcText.style.display = 'none';
+            }
+
+            // リザルト画面を表示
+            document.getElementById('result-overlay').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
