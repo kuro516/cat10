@@ -29,34 +29,34 @@
     <style>
         * {
             box-sizing: border-box;
-            touch-action: manipulation;
         }
 
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
+        body {
             background-color: #1a1a24;
             color: #fff;
             font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             overflow: hidden;
+            touch-action: none;
             user-select: none;
             -webkit-user-select: none;
-            -webkit-touch-callout: none;
-            -webkit-tap-highlight-color: transparent;
         }
 
-        /* 画面中央にぴったりのセンタリング構造 */
+        /* 画面中央寄せ用ラッパー */
         .wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             width: 100%;
-            height: 100vh; /* フォールバック */
-            height: 100dvh; /* スマホのアドレスバー変動に対応 */
-            padding: 12px 10px;
+            height: 100%;
+            padding: 10px;
         }
 
         /* 1. ゲーム画面エリア */
@@ -69,8 +69,7 @@
             display: flex;
             overflow: hidden;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            border-radius: 12px;
-            flex-shrink: 0;
+            border-radius: 8px;
         }
 
         /* 4つのレーン */
@@ -79,6 +78,7 @@
             border-right: 1px dashed #444;
             position: relative;
             transition: background-color 0.05s;
+            -webkit-tap-highlight-color: transparent;
         }
         .lane:last-child {
             border-right: none;
@@ -92,7 +92,7 @@
         /* 判定ライン */
         #judge-line {
             position: absolute;
-            bottom: 10%;
+            bottom: 45px;
             width: 100%;
             height: 4px;
             background-color: #ff2a6d;
@@ -104,7 +104,7 @@
         .note {
             position: absolute;
             width: calc(100% - 10px);
-            height: 20px;
+            height: 18px;
             background: linear-gradient(180deg, #00f6ff, #0088ff);
             border-radius: 4px;
             left: 5px;
@@ -127,7 +127,7 @@
         }
 
         #combo-count {
-            font-size: clamp(32px, 8vw, 42px);
+            font-size: 42px;
             font-weight: 900;
             color: #ffe600;
             text-shadow: 0 0 15px rgba(255, 230, 0, 0.8);
@@ -135,7 +135,7 @@
         }
 
         #combo-label {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: bold;
             letter-spacing: 2px;
             color: #fff;
@@ -147,7 +147,7 @@
             top: 52%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: clamp(20px, 6vw, 26px);
+            font-size: 26px;
             font-weight: 900;
             text-shadow: 0 0 10px rgba(0,0,0,0.8);
             pointer-events: none;
@@ -166,7 +166,7 @@
             position: absolute;
             width: 100%;
             height: 40px;
-            left: 0;
+            left: 0px;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(0,246,255,0.8) 50%, rgba(0,246,255,0) 100%);
             box-shadow: 0 0 20px #00f6ff;
@@ -186,15 +186,15 @@
             display: flex;
             width: min(320px, 92vw);
             margin-top: 8px;
-            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
         }
         .key-guide {
             flex: 1;
             text-align: center;
             background: #333;
-            padding: 10px 0;
+            padding: 8px 0;
             margin: 0 2px;
-            border-radius: 6px;
+            border-radius: 4px;
             font-weight: bold;
             font-size: 16px;
             color: #00f6ff;
@@ -206,23 +206,33 @@
             box-shadow: 0 0 10px #00f6ff;
         }
 
-        /* 2. 3. フッターエリア（スコア ＆ タイトル） */
+        /* 2. スコア & 3. フッターエリア */
         #game-footer {
             text-align: center;
-            margin-top: 8px;
-            flex-shrink: 0;
+            margin-top: 10px;
         }
 
         #score-board {
-            font-size: clamp(18px, 5vw, 22px);
+            font-size: 24px;
             font-weight: bold;
             color: #00f6ff;
         }
 
-        .title-text {
-            margin: 2px 0 0 0;
-            font-size: clamp(14px, 4vw, 16px);
-            color: #aaa;
+        /* 全画面切替ボタン */
+        .fullscreen-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ccc;
+            border: 1px solid #555;
+            border-radius: 12px;
+            padding: 5px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: 0.2s;
+        }
+        .fullscreen-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: #fff;
         }
 
         /* オーバーレイ画面（スタート／リザルト） */
@@ -232,49 +242,49 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.88);
+            background: rgba(0,0,0,0.85);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 40;
             text-align: center;
-            padding: 15px;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
         .result-rank {
-            font-size: clamp(54px, 15vw, 72px);
+            font-size: 72px;
             font-weight: 900;
             color: #ffe600;
             text-shadow: 0 0 20px #ffe600;
-            margin: 2px 0;
+            margin: 5px 0;
             line-height: 1;
         }
 
         #full-combo-text {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 900;
             color: #ffea00;
             text-shadow: 0 0 10px #ffea00;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             letter-spacing: 2px;
         }
 
         .result-stats {
             text-align: left;
-            font-size: 13px;
-            line-height: 1.7;
+            font-size: 14px;
+            line-height: 1.8;
             background: rgba(255,255,255,0.1);
-            padding: 10px 16px;
+            padding: 12px 20px;
             border-radius: 8px;
-            margin-bottom: 12px;
-            width: 88%;
+            margin-bottom: 15px;
+            width: 80%;
         }
 
-        button {
-            padding: 10px 22px;
-            font-size: 16px;
-            font-weight: bold;
+        button.action-btn {
+            padding: 12px 24px;
+            font-size: 18px;
             background-color: #ff2a6d;
             color: white;
             border: none;
@@ -283,7 +293,7 @@
             transition: 0.2s;
         }
 
-        button:hover {
+        button.action-btn:hover {
             background-color: #ff5588;
             transform: scale(1.05);
         }
@@ -313,26 +323,26 @@
 
             <!-- スタート画面 -->
             <div id="start-overlay" class="overlay">
-                <h2 style="margin-top:0;">音ゲーモード</h2>
-                <p style="font-size: 13px; color: #ccc; margin-bottom: 18px;">D/F/J/K キー または<br>画面タップでノーツを叩こう！</p>
-                <button onclick="startGame()">START</button>
+                <h2>うさぎドロップ</h2>
+                <p style="font-size: 13px; color: #ccc; margin-bottom: 20px;">D/F/J/K キー または<br>画面タップでノーツを叩こう！</p>
+                <button class="action-btn" onclick="startGame()">START</button>
             </div>
 
             <!-- リザルト画面 -->
             <div id="result-overlay" class="overlay" style="display: none;">
-                <h2 style="margin: 0; font-size: 18px;">CLEAR!</h2>
+                <h2 style="margin: 0; font-size: 20px;">CLEAR!</h2>
                 <div id="result-rank" class="result-rank">SS</div>
                 <div id="full-combo-text" style="display: none;">★ FULL COMBO ★</div>
                 <div class="result-stats">
                     <div>SCORE: <b id="res-score" style="color:#00f6ff;">0</b></div>
                     <div>MAX COMBO: <b id="res-maxcombo" style="color:#ffe600;">0</b></div>
-                    <hr style="border: 0.5px solid #444; margin: 5px 0;">
+                    <hr style="border: 0.5px solid #444; margin: 6px 0;">
                     <div>PERFECT: <span id="res-perfect">0</span></div>
                     <div>GREAT: <span id="res-great">0</span></div>
                     <div>GOOD: <span id="res-good">0</span></div>
                     <div>MISS: <span id="res-miss">0</span></div>
                 </div>
-                <button onclick="startGame()">RETRY</button>
+                <button class="action-btn" onclick="startGame()">RETRY</button>
             </div>
         </div>
 
@@ -344,18 +354,19 @@
             <div class="key-guide" id="guide-3">K</div>
         </div>
 
-        <!-- 2. スコア & 3. タイトル -->
+        <!-- 2. スコア & 3. タイトル & 全画面切替 -->
         <div id="game-footer">
             <div id="score-board">SCORE: <span id="score">0</span></div>
-            <h1 class="title-text">うさぎロケット</h1>
+            <h1 style="margin: 4px 0 2px 0; font-size: 18px; color: #aaa;">うさぎロケット</h1>
+            <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 全画面切替</button>
         </div>
     </div>
 
     <script>
         const LANE_KEYS = ['KeyD', 'KeyF', 'KeyJ', 'KeyK'];
-        let judgeLineY = 0;
         const NOTE_FALL_TIME = 2.5;
 
+        let judgeLineY = 400; // 動的に計算
         let score = 0;
         let combo = 0;
         let maxCombo = 0;
@@ -371,23 +382,41 @@
         let countGood = 0;
         let countMiss = 0;
 
+        // 判定ラインの高さを動的に計算
         function updateDimensions() {
             const container = document.getElementById('game-container');
             if (container) {
-                // レーン領域の高さに合わせて判定線Y座標を動的に算出
-                judgeLineY = container.clientHeight * 0.90;
+                // コンテナ底面から45px上を判定位置とする
+                judgeLineY = container.clientHeight - 45;
             }
         }
-
         window.addEventListener('resize', updateDimensions);
         window.addEventListener('load', updateDimensions);
+
+        // 全画面表示の切替処理
+        function toggleFullscreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => console.log(err));
+                } else if (elem.webkitRequestFullscreen) { /* Safari */
+                    elem.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(err => console.log(err));
+                } else if (document.webkitExitFullscreen) { /* Safari */
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
 
         // 総ノーツ数487個の譜面生成（曲長5:14 / BPM 135）
         function generateChart() {
             const chart = [];
             const bpm = 135;
             const beatDuration = 60 / bpm;
-            const START_OFFSET = 5; // 最初5秒ディレイ
+            const START_OFFSET = 5; // 最初5秒はノーツなし
             
             const sections = [
                 { start: 0,   end: 30,  intervalBeats: 1 },
@@ -425,6 +454,7 @@
 
         function startGame() {
             updateDimensions();
+
             document.getElementById('start-overlay').style.display = 'none';
             document.getElementById('result-overlay').style.display = 'none';
             
@@ -487,7 +517,7 @@
 
                 noteObj.el.style.top = `${currentY}px`;
 
-                if (progress > 1.22 && !noteObj.data.hit) {
+                if (progress > 1.25 && !noteObj.data.hit) {
                     countMiss++;
                     combo = 0;
                     updateComboUI();
@@ -646,21 +676,27 @@
             const laneEl = document.getElementById(`lane-${i}`);
             const guideEl = document.getElementById(`guide-${i}`);
 
-            const addTouchEvents = (el) => {
-                if (!el) return;
-                el.addEventListener('touchstart', (e) => {
+            laneEl.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                handleLanePress(i);
+            }, { passive: false });
+
+            laneEl.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                handleLaneRelease(i);
+            }, { passive: false });
+
+            if (guideEl) {
+                guideEl.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     handleLanePress(i);
                 }, { passive: false });
 
-                el.addEventListener('touchend', (e) => {
+                guideEl.addEventListener('touchend', (e) => {
                     e.preventDefault();
                     handleLaneRelease(i);
                 }, { passive: false });
-            };
-
-            addTouchEvents(laneEl);
-            addTouchEvents(guideEl);
+            }
         }
 
         // --- リザルト画面処理 ---
@@ -670,7 +706,7 @@
             const bgm = document.getElementById('bgm');
             bgm.pause();
 
-            // 理論値（約1,334,380点）に対するランク判定
+            // 理論値（1,334,380点）に対する厳格ランク判定
             let rank = 'C';
             if (score >= 1200000) rank = 'SS';
             else if (score >= 900000) rank = 'S';
