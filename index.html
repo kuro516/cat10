@@ -6,14 +6,14 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#1a1a24">
-  <title>うさぎロケット - リズムゲーム</title>
+  <title>うさぎドロップ - リズムゲーム</title>
 
   <!-- 基本説明 -->
   <meta name="description" content="最高得点を目指せ！D/F/J/Kキーでプレイするリズムゲーム。">
 
   <!-- Open Graph 設定 (Slackがメインで読み込むタグ) -->
-  <meta property="og:site_name" content="うさぎロケット - リズムゲーム">
-  <meta property="og:title" content="うさぎロケット - リズムゲーム">
+  <meta property="og:site_name" content="うさぎドロップ - リズムゲーム">
+  <meta property="og:title" content="うさぎドロップ - リズムゲーム">
   <meta property="og:description" content="最高得点を目指せ！D/F/J/Kキーでプレイするリズムゲーム。">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://kuro516.github.io/cat10/">
@@ -26,7 +26,7 @@
 
   <!-- Twitter Card (SlackがOGPの予備として読み込む場合あり) -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="うさぎロケット - リズムゲーム">
+  <meta name="twitter:title" content="うさぎドロップ - リズムゲーム">
   <meta name="twitter:description" content="最高得点を目指せ！D/F/J/Kキーでプレイするリズムゲーム。">
   <meta name="twitter:image" content="https://kuro516.github.io/cat10/ogp-image.png">
 
@@ -318,6 +318,49 @@
             transition: 0.2s;
         }
 
+        .diff-select {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+        button.diff-btn {
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            background: transparent;
+            color: #aaa;
+            border: 2px solid #555;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button.diff-btn.selected[data-diff="easy"] {
+            color: #7dff6a;
+            border-color: #7dff6a;
+            box-shadow: 0 0 10px rgba(125,255,106,0.5);
+        }
+        button.diff-btn.selected[data-diff="normal"] {
+            color: #00f6ff;
+            border-color: #00f6ff;
+            box-shadow: 0 0 10px rgba(0,246,255,0.5);
+        }
+        button.diff-btn.selected[data-diff="hard"] {
+            color: #ff2a6d;
+            border-color: #ff2a6d;
+            box-shadow: 0 0 10px rgba(255,42,109,0.5);
+        }
+        button.sub-btn {
+            margin-top: 10px;
+            padding: 6px 16px;
+            font-size: 13px;
+            background: transparent;
+            color: #aaa;
+            border: 1px solid #555;
+            border-radius: 16px;
+            cursor: pointer;
+        }
+
         button.action-btn:hover {
             background-color: #ff5588;
             transform: scale(1.05);
@@ -357,12 +400,18 @@
             <div id="start-overlay" class="overlay">
                 <h2>うさぎドロップ</h2>
                 <p style="font-size: 13px; color: #ccc; margin-bottom: 20px;">D/F/J/K キー または<br>画面タップでノーツを叩こう！</p>
+                <div class="diff-select">
+                    <button class="diff-btn" data-diff="easy" onclick="setDifficulty('easy')">EASY</button>
+                    <button class="diff-btn" data-diff="normal" onclick="setDifficulty('normal')">NORMAL</button>
+                    <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">HARD</button>
+                </div>
                 <button class="action-btn" onclick="startGame()">START</button>
             </div>
 
             <!-- リザルト画面 -->
             <div id="result-overlay" class="overlay" style="display: none;">
                 <h2 style="margin: 0; font-size: 20px;">CLEAR!</h2>
+                <div id="res-diff" style="font-size: 13px; font-weight: bold; letter-spacing: 2px; margin-top: 2px;"></div>
                 <div id="result-rank" class="result-rank">SS</div>
                 <div id="full-combo-text" style="display: none;">★ FULL COMBO ★</div>
                 <div class="result-stats">
@@ -375,6 +424,7 @@
                     <div>MISS: <span id="res-miss">0</span></div>
                 </div>
                 <button class="action-btn" onclick="startGame()">RETRY</button>
+                <button class="sub-btn" onclick="backToTitle()">難易度を変える</button>
             </div>
         </div>
 
@@ -389,7 +439,7 @@
         <!-- 2. スコア & 3. タイトル & 全画面切替 -->
         <div id="game-footer">
             <div id="score-board">SCORE: <span id="score">0</span></div>
-            <h1 style="margin: 0; font-size: 11px; font-weight: normal; color: #777;">うさぎロケット</h1>
+            <h1 style="margin: 0; font-size: 11px; font-weight: normal; color: #777;" id="title-text">うさぎロケット</h1>
             <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 全画面切替</button>
         </div>
     </div>
@@ -406,6 +456,35 @@
         let isPlaying = false;
         let chartData = [];
         let activeNotes = [];
+
+        // 難易度設定：HARD = 元の譜面、NORMAL = 間隔2倍（約半分）、EASY = 間隔4倍（NORMALのさらに半分）
+        const DIFFICULTIES = {
+            easy:   { label: 'EASY',   intervalScale: 4, color: '#7dff6a' },
+            normal: { label: 'NORMAL', intervalScale: 2, color: '#00f6ff' },
+            hard:   { label: 'HARD',   intervalScale: 1, color: '#ff2a6d' }
+        };
+        let currentDifficulty = 'normal';
+        try {
+            const saved = localStorage.getItem('usagi-difficulty');
+            if (saved && DIFFICULTIES[saved]) currentDifficulty = saved;
+        } catch (e) {}
+
+        function setDifficulty(key) {
+            if (!DIFFICULTIES[key]) return;
+            currentDifficulty = key;
+            try { localStorage.setItem('usagi-difficulty', key); } catch (e) {}
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.diff === key);
+            });
+        }
+        setDifficulty(currentDifficulty);
+
+        function backToTitle() {
+            document.getElementById('result-overlay').style.display = 'none';
+            document.getElementById('start-overlay').style.display = 'flex';
+            const t = document.getElementById('title-text');
+            if (t) t.innerText = 'うさぎロケット';
+        }
         let judgeTimer = null;
 
         // 判定カウント用
@@ -453,12 +532,13 @@
             }
         }
 
-        // 総ノーツ数487個の譜面生成（曲長5:14 / BPM 135）
+        // 譜面生成（曲長5:14 / BPM 135）。HARD=下記の間隔そのまま（約1118個）、NORMAL=間隔2倍（約560個）、EASY=間隔4倍（約280個）
         function generateChart() {
             const chart = [];
             const bpm = 135;
             const beatDuration = 60 / bpm;
             const START_OFFSET = 5; // 最初5秒はノーツなし
+            const scale = DIFFICULTIES[currentDifficulty].intervalScale;
             
             const sections = [
                 { start: 0,   end: 30,  intervalBeats: 1 },
@@ -475,7 +555,7 @@
 
             sections.forEach(sec => {
                 let currentTime = sec.start + START_OFFSET;
-                const interval = beatDuration * sec.intervalBeats;
+                const interval = beatDuration * sec.intervalBeats * scale;
 
                 while (currentTime < sec.end + START_OFFSET) {
                     currentLane = (currentLane + Math.floor(Math.random() * 3) + 1) % 4;
@@ -517,6 +597,9 @@
 
             chartData = generateChart();
             activeNotes = [];
+
+            const titleEl = document.getElementById('title-text');
+            if (titleEl) titleEl.innerText = 'うさぎロケット - ' + DIFFICULTIES[currentDifficulty].label;
 
             const bgm = document.getElementById('bgm');
             bgm.currentTime = 0;
@@ -748,12 +831,21 @@
             const bgm = document.getElementById('bgm');
             bgm.pause();
 
-            // 理論値（1,334,380点）に対する厳格ランク判定
+            // この譜面の理論値（全PERFECT・フルコンボ）に対する割合でランク判定
+            // 理論値 = 300×N + 10×(1+2+…+N) = 300N + 5N(N+1)   （N = ノーツ数）
+            const n = chartData.length;
+            const maxScore = 300 * n + 5 * n * (n + 1);
+            const ratio = maxScore > 0 ? score / maxScore : 0;
             let rank = 'C';
-            if (score >= 1200000) rank = 'SS';
-            else if (score >= 900000) rank = 'S';
-            else if (score >= 600000) rank = 'A';
-            else if (score >= 350000) rank = 'B';
+            if (ratio >= 0.90) rank = 'SS';
+            else if (ratio >= 0.675) rank = 'S';
+            else if (ratio >= 0.45) rank = 'A';
+            else if (ratio >= 0.26) rank = 'B';
+
+            const diffEl = document.getElementById('res-diff');
+            const d = DIFFICULTIES[currentDifficulty];
+            diffEl.innerText = d.label;
+            diffEl.style.color = d.color;
 
             document.getElementById('res-score').innerText = score.toLocaleString();
             document.getElementById('res-maxcombo').innerText = maxCombo;
