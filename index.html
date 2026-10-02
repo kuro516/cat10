@@ -2,6 +2,10 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1a1a24">
   <title>うさぎロケット - リズムゲーム</title>
 
   <!-- 基本説明 -->
@@ -31,6 +35,18 @@
             box-sizing: border-box;
         }
 
+        :root {
+            /* 実際に見えている高さ（JSで window.innerHeight に更新。未対応時は dvh） */
+            --app-h: 100vh;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            /* ゲーム画面の幅：スマホでは画面幅いっぱい、PCでは縦長を保って中央に */
+            --cw: min(100vw, calc(var(--app-h) * 0.72), 560px);
+        }
+        @supports (height: 100dvh) {
+            :root { --app-h: 100dvh; }
+        }
+
         body {
             background-color: #1a1a24;
             color: #fff;
@@ -38,7 +54,7 @@
             margin: 0;
             padding: 0;
             width: 100vw;
-            height: 100dvh;
+            height: var(--app-h);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -48,28 +64,23 @@
             -webkit-user-select: none;
         }
 
-        /* 画面中央寄せ用ラッパー */
+        /* 画面いっぱいのラッパー（中の要素はここを基準に重ねて配置） */
         .wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-            padding: 10px;
+            position: relative;
+            width: var(--cw);
+            height: var(--app-h);
+            padding: 0;
         }
 
         /* 1. ゲーム画面エリア */
         #game-container {
             position: relative;
-            width: min(320px, 92vw);
-            height: min(480px, 62vh);
+            width: 100%;
+            height: 100%;
             background-color: #2a2a38;
-            border: 2px solid #555;
             display: flex;
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            border-radius: 8px;
+            box-shadow: 0 0 0 1px #3a3a4a, 0 0 20px rgba(0,0,0,0.5);
         }
 
         /* 4つのレーン */
@@ -92,7 +103,7 @@
         /* 判定ライン */
         #judge-line {
             position: absolute;
-            bottom: 45px;
+            bottom: calc(var(--safe-bottom) + 66px);
             width: 100%;
             height: 4px;
             background-color: #ff2a6d;
@@ -183,16 +194,20 @@
 
         /* キーガイド表示 */
         #key-guides {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: calc(var(--safe-bottom) + 8px);
+            z-index: 20;
             display: flex;
-            width: min(320px, 92vw);
-            margin-top: 8px;
+            padding: 0 4px;
             -webkit-tap-highlight-color: transparent;
         }
         .key-guide {
             flex: 1;
             text-align: center;
-            background: #333;
-            padding: 8px 0;
+            background: rgba(51, 51, 64, 0.85);
+            padding: 11px 0;
             margin: 0 2px;
             border-radius: 4px;
             font-weight: bold;
@@ -208,14 +223,20 @@
 
         /* 2. スコア & 3. フッターエリア */
         #game-footer {
+            position: absolute;
+            top: calc(var(--safe-top) + 8px);
+            left: 0;
+            right: 0;
+            z-index: 20;
             text-align: center;
-            margin-top: 10px;
+            pointer-events: none;
         }
 
         #score-board {
             font-size: 24px;
             font-weight: bold;
             color: #00f6ff;
+            text-shadow: 0 0 8px rgba(0,0,0,0.8);
         }
 
         /* 全画面切替ボタン */
@@ -227,7 +248,11 @@
             padding: 5px 12px;
             font-size: 12px;
             cursor: pointer;
-            margin-top: 6px;
+            position: absolute;
+            top: 0;
+            right: 8px;
+            z-index: 50;
+            pointer-events: auto;
             transition: 0.2s;
         }
         .fullscreen-btn:hover {
@@ -297,6 +322,13 @@
             background-color: #ff5588;
             transform: scale(1.05);
         }
+
+        /* 縦が極端に短い画面（横向きなど）では少しコンパクトに */
+        @media (max-height: 520px) {
+            #score-board { font-size: 18px; }
+            .key-guide { padding: 7px 0; }
+            #judge-line { bottom: calc(var(--safe-bottom) + 52px); }
+        }
     </style>
 </head>
 <body>
@@ -357,7 +389,7 @@
         <!-- 2. スコア & 3. タイトル & 全画面切替 -->
         <div id="game-footer">
             <div id="score-board">SCORE: <span id="score">0</span></div>
-            <h1 style="margin: 4px 0 2px 0; font-size: 18px; color: #aaa;">うさぎロケット</h1>
+            <h1 style="margin: 0; font-size: 11px; font-weight: normal; color: #777;">うさぎロケット</h1>
             <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 全画面切替</button>
         </div>
     </div>
@@ -384,14 +416,24 @@
 
         // 判定ラインの高さを動的に計算
         function updateDimensions() {
+            // スマホのアドレスバー等を除いた「実際に見えている高さ」をCSSに反映
+            const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+            document.documentElement.style.setProperty('--app-h', vh + 'px');
             const container = document.getElementById('game-container');
             if (container) {
-                // コンテナ底面から45px上を判定位置とする
-                judgeLineY = container.clientHeight - 45;
+                // 判定ラインの実際の位置（CSSの bottom 値）から判定位置を求める
+                const jl = document.getElementById('judge-line');
+                const bottom = jl ? parseFloat(getComputedStyle(jl).bottom) : 45;
+                judgeLineY = container.clientHeight - bottom;
             }
         }
         window.addEventListener('resize', updateDimensions);
+        window.addEventListener('orientationchange', updateDimensions);
         window.addEventListener('load', updateDimensions);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateDimensions);
+        }
+        updateDimensions();
 
         // 全画面表示の切替処理
         function toggleFullscreen() {
